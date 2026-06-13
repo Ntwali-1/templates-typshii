@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decentralized Auction DApp</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.5.3/dist/web3.min.js"></script>
+  <script src="app.js" defer></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1c0a00 0%, #3d1500 50%, #5c2000 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      color: #e0e0e0;
+    }
+
+    h1 { font-size: 1.9rem; color: #fbbf24; margin-bottom: 6px; text-align: center; }
+    .subtitle { color: #aaa; font-size: 0.9rem; margin-bottom: 30px; text-align: center; }
+
+    .card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 24px;
+      width: 100%;
+      max-width: 560px;
+      margin-bottom: 18px;
+    }
+
+    .card h2 { font-size: 1rem; color: #f59e0b; margin-bottom: 14px; }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      color: #ccc;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-val { color: #fbbf24; font-weight: 600; }
+
+    input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.08);
+      color: #e0e0e0;
+      font-size: 0.92rem;
+      margin-bottom: 10px;
+      outline: none;
+    }
+    input::placeholder { color: #888; }
+    input:focus { border-color: #f59e0b; }
+
+    .btn {
+      background: linear-gradient(90deg, #d97706, #b45309);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.92rem;
+      font-weight: 600;
+      width: 100%;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-top: 4px;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { transform: scale(0.98); }
+
+    .status {
+      font-size: 0.82rem;
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 7px;
+      display: none;
+    }
+    .status.success { background: rgba(52,211,153,0.15); color: #34d399; display: block; }
+    .status.error   { background: rgba(248,113,113,0.15); color: #f87171; display: block; }
+
+    #account { font-size: 0.82rem; color: #fbbf24; word-break: break-all; text-align: center; margin-top: 8px; }
+    .admin-note { font-size: 0.76rem; color: #f87171; margin-top: 6px; }
+
+    #timer {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #f59e0b;
+      text-align: center;
+      padding: 10px;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>&#127919; Decentralized Auction</h1>
+  <p class="subtitle">Ethereum &bull; Truffle &bull; Ganache &bull; Web3.js</p>
+
+  <!-- Wallet -->
+  <div class="card" style="text-align:center;">
+    <button class="btn" onclick="connectWallet()">&#128274; Connect Wallet</button>
+    <p id="account">Not connected</p>
+  </div>
+
+  <!-- Auction Status -->
+  <div class="card">
+    <h2>&#128202; Auction Status</h2>
+    <div id="timer">--:--</div>
+    <div class="info-row"><span>Item</span><span class="info-val" id="itemName">—</span></div>
+    <div class="info-row"><span>Highest Bid</span><span class="info-val" id="highestBid">—</span></div>
+    <div class="info-row"><span>Highest Bidder</span><span class="info-val" id="highestBidder" style="font-size:0.75rem;">—</span></div>
+    <div class="info-row"><span>Contract Balance</span><span class="info-val" id="contractBalance">—</span></div>
+    <div class="info-row"><span>Status</span><span class="info-val" id="auctionStatus">—</span></div>
+  </div>
+
+  <!-- Place Bid -->
+  <div class="card">
+    <h2>&#128176; Place a Bid</h2>
+    <input type="number" id="bidAmount" placeholder="Bid amount in ETH (must exceed current highest)" min="0" step="0.001" />
+    <button class="btn" onclick="placeBid()">Place Bid</button>
+    <div id="bidStatus" class="status"></div>
+  </div>
+
+  <!-- Withdraw -->
+  <div class="card">
+    <h2>&#8617; Withdraw Outbid ETH</h2>
+    <p style="font-size:0.88rem;color:#bbb;margin-bottom:12px;">If you were outbid, withdraw your ETH back to your wallet.</p>
+    <button class="btn" style="background:linear-gradient(90deg,#4b5563,#374151);" onclick="withdrawFunds()">Withdraw</button>
+    <div id="withdrawStatus" class="status"></div>
+  </div>
+
+  <!-- End Auction (owner only) -->
+  <div class="card">
+    <h2>&#128682; End Auction <span style="color:#888;font-size:0.75rem;font-weight:400;">(owner only)</span></h2>
+    <p style="font-size:0.88rem;color:#bbb;margin-bottom:12px;">Can only be called after the auction time has expired.</p>
+    <button class="btn" style="background:linear-gradient(90deg,#dc2626,#991b1b);" onclick="endAuction()">End Auction</button>
+    <p class="admin-note">&#9888; Only the contract deployer can end the auction.</p>
+    <div id="endStatus" class="status"></div>
+  </div>
+
+</body>
+</html>

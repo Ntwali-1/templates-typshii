@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SimpleToken DApp</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.5.3/dist/web3.min.js"></script>
+  <script src="app.js" defer></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0a2e1a 0%, #0d3b22 50%, #0f4c33 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      color: #e0e0e0;
+    }
+
+    h1 { font-size: 1.9rem; color: #6ee7b7; margin-bottom: 6px; text-align: center; }
+    .subtitle { color: #aaa; font-size: 0.9rem; margin-bottom: 30px; text-align: center; }
+
+    .card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 24px;
+      width: 100%;
+      max-width: 560px;
+      margin-bottom: 18px;
+    }
+
+    .card h2 { font-size: 1rem; color: #34d399; margin-bottom: 14px; }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      color: #ccc;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-val { color: #6ee7b7; font-weight: 600; }
+
+    input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.08);
+      color: #e0e0e0;
+      font-size: 0.92rem;
+      margin-bottom: 10px;
+      outline: none;
+    }
+    input::placeholder { color: #888; }
+    input:focus { border-color: #34d399; }
+
+    .btn {
+      background: linear-gradient(90deg, #059669, #047857);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.92rem;
+      font-weight: 600;
+      width: 100%;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-top: 4px;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { transform: scale(0.98); }
+    .btn.secondary { background: linear-gradient(90deg, #065f46, #064e3b); }
+
+    .status {
+      font-size: 0.82rem;
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 7px;
+      display: none;
+    }
+    .status.success { background: rgba(52,211,153,0.15); color: #34d399; display: block; }
+    .status.error   { background: rgba(248,113,113,0.15); color: #f87171; display: block; }
+
+    .admin-note { font-size: 0.76rem; color: #f87171; margin-top: 6px; }
+    #account { font-size: 0.82rem; color: #6ee7b7; word-break: break-all; text-align: center; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+  <h1>&#127873; SimpleToken DApp</h1>
+  <p class="subtitle">STK Token &bull; Ethereum &bull; Web3.js</p>
+
+  <!-- Wallet -->
+  <div class="card" style="text-align:center;">
+    <button class="btn" onclick="connectWallet()">&#128274; Connect Wallet</button>
+    <p id="account">Not connected</p>
+  </div>
+
+  <!-- Token Info -->
+  <div class="card">
+    <h2>&#128200; Token Info</h2>
+    <div class="info-row"><span>Name</span><span class="info-val" id="tokenName">—</span></div>
+    <div class="info-row"><span>Symbol</span><span class="info-val" id="tokenSymbol">—</span></div>
+    <div class="info-row"><span>Total Supply</span><span class="info-val" id="totalSupply">—</span></div>
+    <div class="info-row"><span>Your Balance</span><span class="info-val" id="myBalance">—</span></div>
+  </div>
+
+  <!-- Mint (owner only) -->
+  <div class="card">
+    <h2>&#9881; Mint Tokens <span style="color:#888;font-size:0.75rem;font-weight:400;">(owner only)</span></h2>
+    <input type="text" id="mintTo" placeholder="Recipient address (0x...)" />
+    <input type="number" id="mintAmount" placeholder="Amount in STK (e.g. 1000)" min="1" />
+    <button class="btn" onclick="mintTokens()">Mint</button>
+    <p class="admin-note">&#9888; Only the contract deployer can mint new tokens.</p>
+    <div id="mintStatus" class="status"></div>
+  </div>
+
+  <!-- Transfer -->
+  <div class="card">
+    <h2>&#10145; Transfer Tokens</h2>
+    <input type="text" id="transferTo" placeholder="Recipient address (0x...)" />
+    <input type="number" id="transferAmount" placeholder="Amount in STK" min="1" />
+    <button class="btn" onclick="transferTokens()">Transfer</button>
+    <div id="transferStatus" class="status"></div>
+  </div>
+
+  <!-- Approve & Allowance -->
+  <div class="card">
+    <h2>&#128203; Approve Spender</h2>
+    <input type="text" id="spenderAddress" placeholder="Spender address (0x...)" />
+    <input type="number" id="approveAmount" placeholder="Allowance amount in STK" min="0" />
+    <button class="btn secondary" onclick="approveSpender()">Approve</button>
+    <div id="approveStatus" class="status"></div>
+  </div>
+
+  <!-- Burn -->
+  <div class="card">
+    <h2>&#128293; Burn Tokens</h2>
+    <input type="number" id="burnAmount" placeholder="Amount to burn from your balance" min="1" />
+    <button class="btn" style="background:linear-gradient(90deg,#dc2626,#991b1b);" onclick="burnTokens()">Burn</button>
+    <div id="burnStatus" class="status"></div>
+  </div>
+
+</body>
+</html>

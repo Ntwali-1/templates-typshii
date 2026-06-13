@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Decentralized Scholarship Funding</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.5.3/dist/web3.min.js"></script>
+  <script src="web3.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f7fa;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      color: #1a1a2e;
+      font-size: 2rem;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: #555;
+      font-size: 0.95rem;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      padding: 30px;
+      width: 100%;
+      max-width: 560px;
+      margin-bottom: 20px;
+    }
+
+    .connect-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #account {
+      font-size: 0.85rem;
+      color: #444;
+      word-break: break-all;
+      text-align: center;
+      padding: 8px 14px;
+      background: #eef2ff;
+      border-radius: 6px;
+      display: none;
+      width: 100%;
+    }
+
+    #balance {
+      font-size: 0.85rem;
+      color: #1e90ff;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .section-header h2 {
+      font-size: 1.1rem;
+      color: #1a1a2e;
+    }
+
+    .section-header .icon {
+      font-size: 1.3rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #d0d7e3;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      border-color: #1e90ff;
+    }
+
+    button {
+      background-color: #1e90ff;
+      color: white;
+      padding: 10px 22px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      transition: background-color 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      background-color: #1070d0;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button.connect-btn {
+      width: 100%;
+      padding: 12px;
+      font-size: 1rem;
+    }
+
+    button.apply-btn {
+      width: 100%;
+    }
+
+    .admin-note {
+      font-size: 0.78rem;
+      color: #e05252;
+      margin-top: 6px;
+    }
+
+    .status-msg {
+      font-size: 0.85rem;
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .status-msg.success {
+      background: #e6f9f0;
+      color: #2a9d5c;
+      display: block;
+    }
+
+    .status-msg.error {
+      background: #fdecea;
+      color: #c0392b;
+      display: block;
+    }
+
+    .divider {
+      height: 1px;
+      background: #e8ecf0;
+      margin: 10px 0 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Decentralized Scholarship Funding</h1>
+  <p class="subtitle">Powered by Ethereum &bull; Truffle &bull; Web3.js</p>
+
+  <!-- Wallet Connection -->
+  <div class="card connect-card">
+    <button class="connect-btn" onclick="connectWallet()">&#128274; Connect Wallet</button>
+    <div id="account"></div>
+    <div id="balance"></div>
+  </div>
+
+  <!-- Donate ETH -->
+  <div class="card">
+    <div class="section-header">
+      <span class="icon">&#128176;</span>
+      <h2>Donate ETH</h2>
+    </div>
+    <div class="divider"></div>
+    <div class="form-group">
+      <div class="input-row">
+        <input type="number" id="donationAmount" placeholder="Amount in ETH (e.g. 0.1)" min="0" step="0.01">
+        <button onclick="donate()">Donate</button>
+      </div>
+      <div id="donateStatus" class="status-msg"></div>
+    </div>
+  </div>
+
+  <!-- Apply for Scholarship -->
+  <div class="card">
+    <div class="section-header">
+      <span class="icon">&#127891;</span>
+      <h2>Apply for Scholarship</h2>
+    </div>
+    <div class="divider"></div>
+    <div class="form-group">
+      <p style="font-size:0.9rem;color:#555;margin-bottom:8px;">Submit your application to be considered for scholarship funding.</p>
+      <button class="apply-btn" onclick="applyForScholarship()">Apply Now</button>
+      <div id="applyStatus" class="status-msg"></div>
+    </div>
+  </div>
+
+  <!-- Release Funds (Admin) -->
+  <div class="card">
+    <div class="section-header">
+      <span class="icon">&#128275;</span>
+      <h2>Release Funds</h2>
+    </div>
+    <div class="divider"></div>
+    <div class="form-group">
+      <div class="input-row">
+        <input type="text" id="recipientAddress" placeholder="Recipient wallet address (0x...)">
+      </div>
+      <div class="input-row">
+        <input type="number" id="releaseAmount" placeholder="Amount in ETH to release" min="0" step="0.01">
+        <button onclick="releaseFunds()">Release</button>
+      </div>
+      <p class="admin-note">&#9888; Admin only &mdash; connected wallet must be the contract deployer.</p>
+      <div id="releaseStatus" class="status-msg"></div>
+    </div>
+  </div>
+
+</body>
+</html>
