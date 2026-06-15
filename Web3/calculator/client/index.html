@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decentralized Calculator DApp</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+  <script src="app.js" defer></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #000;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      color: #fff;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      color: #fff;
+      margin-bottom: 4px;
+      text-align: center;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      color: #888;
+      font-size: 0.78rem;
+      margin-bottom: 30px;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+
+    .card {
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 24px;
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 16px;
+    }
+
+    .card h2 {
+      font-size: 0.75rem;
+      color: #888;
+      margin-bottom: 14px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    #account {
+      font-size: 0.75rem;
+      color: #aaa;
+      word-break: break-all;
+      margin-top: 10px;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+    }
+
+    .btn {
+      background: #fff;
+      color: #000;
+      border: none;
+      padding: 11px 20px;
+      border-radius: 2px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: background 0.15s, color 0.15s;
+      width: 100%;
+    }
+
+    .btn:hover { background: #ddd; }
+    .btn:active { background: #bbb; }
+
+    .btn.outline {
+      background: transparent;
+      color: #fff;
+      border: 1px solid #fff;
+    }
+    .btn.outline:hover { background: #fff; color: #000; }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid #444;
+      border-radius: 2px;
+      background: #000;
+      color: #fff;
+      font-size: 1rem;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 12px;
+      outline: none;
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input[type="number"]::placeholder { color: #555; }
+    input[type="number"]:focus { border-color: #fff; }
+
+    .ops-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .op-btn {
+      background: #000;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 14px;
+      border-radius: 2px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .op-btn:hover { background: #fff; color: #000; border-color: #fff; }
+    .op-btn:active { background: #ccc; }
+    .op-btn span { display: block; font-size: 0.65rem; font-weight: 400; color: #888; margin-top: 3px; letter-spacing: 1px; text-transform: uppercase; }
+    .op-btn:hover span { color: #333; }
+
+    .result-box {
+      background: #000;
+      border: 1px solid #444;
+      border-radius: 2px;
+      padding: 18px 20px;
+      margin-top: 0;
+      text-align: right;
+      font-family: 'Courier New', monospace;
+    }
+
+    .result-label {
+      font-size: 0.7rem;
+      color: #555;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    #result {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #fff;
+      min-height: 48px;
+      word-break: break-all;
+    }
+
+    #result.pending { color: #555; font-size: 1rem; padding-top: 14px; }
+
+    .status {
+      font-size: 0.78rem;
+      margin-top: 12px;
+      padding: 9px 12px;
+      border-radius: 2px;
+      display: none;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.5px;
+    }
+    .status.success { background: #0d1f0d; color: #4caf50; border: 1px solid #2e7d32; display: block; }
+    .status.error   { background: #1f0d0d; color: #ef5350; border: 1px solid #c62828; display: block; }
+    .status.info    { background: #111; color: #888; border: 1px solid #333; display: block; }
+
+    .divider { border: none; border-top: 1px solid #222; margin: 4px 0 16px; }
+
+    #txHash {
+      font-size: 0.68rem;
+      color: #555;
+      word-break: break-all;
+      margin-top: 8px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Calculator DApp</h1>
+  <p class="subtitle">Ethereum &bull; Truffle &bull; Ganache &bull; Web3.js</p>
+
+  <!-- Wallet -->
+  <div class="card" style="text-align:center;">
+    <button class="btn" onclick="connectMetaMask()">Connect MetaMask</button>
+    <p id="account">Not connected</p>
+  </div>
+
+  <!-- Calculator -->
+  <div class="card">
+    <h2>Inputs</h2>
+    <input type="number" id="numA" placeholder="First number (A)" />
+    <input type="number" id="numB" placeholder="Second number (B)" />
+
+    <hr class="divider" />
+
+    <h2>Operation</h2>
+    <div class="ops-grid">
+      <button class="op-btn" onclick="calculate('add')">
+        + <span>Add</span>
+      </button>
+      <button class="op-btn" onclick="calculate('subtract')">
+        &minus; <span>Subtract</span>
+      </button>
+      <button class="op-btn" onclick="calculate('multiply')">
+        &times; <span>Multiply</span>
+      </button>
+      <button class="op-btn" onclick="calculate('divide')">
+        &divide; <span>Divide</span>
+      </button>
+    </div>
+
+    <div id="status" class="status"></div>
+  </div>
+
+  <!-- Result -->
+  <div class="card">
+    <h2>Result</h2>
+    <div class="result-box">
+      <div class="result-label">Output</div>
+      <div id="result" class="pending">—</div>
+    </div>
+    <div id="txHash"></div>
+  </div>
+
+</body>
+</html>
